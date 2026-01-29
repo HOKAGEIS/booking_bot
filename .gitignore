@@ -1,0 +1,18 @@
+# Токены и секреты
+.env
+config.py
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+
+import os
+
+TOKEN = os.getenv("8287955993:AAGyLyXHCSheM4EUYI_20L2caMVxjp-jv2Q")  # вместо TOKEN = "123:ABC..."
