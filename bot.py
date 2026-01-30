@@ -1,9 +1,9 @@
 import asyncio
 import logging
 import sys
-from aiogram import Bot, Dispatcher, executor
-from aiogram.types import ParseMode
-from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from aiogram import Bot, Dispatcher
+from aiogram.enums import ParseMode
+from aiogram.client.default import DefaultBotProperties
 
 from config import config
 import database as db
@@ -17,12 +17,14 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Бот и диспетчер
-bot = Bot(token=config.BOT_TOKEN, parse_mode=ParseMode.HTML)
-storage = MemoryStorage()
-dp = Dispatcher(bot, storage=storage)
+bot = Bot(
+    token=config.BOT_TOKEN,
+    default=DefaultBotProperties(parse_mode=ParseMode.HTML)
+)
+dp = Dispatcher()
 
 
-async def on_startup(dispatcher):
+async def on_startup():
     """Действия при запуске бота"""
     try:
         await db.init_db()
@@ -32,28 +34,29 @@ async def on_startup(dispatcher):
         logger.error(f"❌ Error on startup: {e}")
 
 
-async def on_shutdown(dispatcher):
+async def on_shutdown():
     """Действия при остановке бота"""
     try:
-        await bot.close()
+        await bot.session.close()
         logger.info("✅ Bot stopped")
     except Exception as e:
         logger.error(f"❌ Error on shutdown: {e}")
 
 
-if __name__ == "__main__":
-    # Регистрация хендлеров
-    from handlers import user, admin
-    user.register_handlers(dp)
-    admin.register_handlers(dp)
+async def main():
+    # Регистрация роутеров
+    dp.include_router(user.router)
+    dp.include_router(admin.router)
     
     logger.info("✅ Handlers registered")
     
     # Запуск
-    executor.start_polling(
-        dp,
-        on_startup=on_startup,
-        on_shutdown=on_shutdown,
-        skip_updates=True
-    )
+    await on_startup()
+    try:
+        await dp.start_polling(bot, skip_updates=True)
+    finally:
+        await on_shutdown()
 
+
+if __name__ == "__main__":
+    asyncio.run(main())
